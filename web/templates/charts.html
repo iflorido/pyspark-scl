@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — PySpark Bancario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+    --bg:           #0b1120;
+    --bg-card:      #111827;
+    --bg-card2:     #0f1929;
+    --border:       rgba(56,139,253,.18);
+    --border-h:     rgba(56,139,253,.45);
+    --accent:       #3b82f6;
+    --accent-2:     #38bdf8;
+    --accent-warn:  #f59e0b;
+    --accent-red:   #ef4444;
+    --accent-green: #22c55e;
+    --text-main:    #e2e8f0;
+    --text-dim:     #64748b;
+    --text-mid:     #94a3b8;
+    --tag-bg:       rgba(59,130,246,.12);
+    --radius:       14px;
+    --radius-sm:    8px;
+    --mono:         'Space Mono', monospace;
+    --sans:         'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text-main); min-height: 100vh; }
+
+.layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-card); border-right: 1px solid var(--border);
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    padding: 0 0 2rem;
+}
+.sidebar-logo { padding: 1.5rem 1.25rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: .75rem; }
+.sidebar-logo-title { font-family: var(--mono); font-size: .85rem; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+.sidebar-logo-sub { font-size: .72rem; color: var(--text-dim); margin-top: 2px; }
+.sidebar-nav { padding: .75rem 1.25rem; display: flex; flex-direction: column; gap: .25rem; }
+.nav-link {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .45rem .75rem; border-radius: var(--radius-sm);
+    color: var(--text-mid); text-decoration: none; font-size: .82rem;
+    transition: background .15s, color .15s;
+}
+.nav-link:hover { background: rgba(59,130,246,.08); color: var(--text-main); }
+.nav-link.active { background: rgba(59,130,246,.12); color: var(--accent); }
+.sidebar-section { padding: .25rem .75rem .1rem; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); margin-top: .75rem; }
+
+/* Main */
+.main { flex: 1; padding: 2rem 2.5rem 4rem; }
+
+/* Header */
+.page-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.page-header-left h1 { font-family: var(--mono); font-size: 1.55rem; }
+.page-header-left h1 span { color: var(--accent); }
+.page-header-left p { color: var(--text-mid); font-size: .88rem; margin-top: .3rem; }
+.btn-refresh {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .45rem 1rem; font-family: var(--mono); font-size: .72rem;
+    background: rgba(59,130,246,.1); border: 1px solid var(--border);
+    border-radius: 100px; color: var(--accent); cursor: pointer;
+    transition: background .15s;
+}
+.btn-refresh:hover { background: rgba(59,130,246,.2); }
+.btn-refresh.loading { opacity: .5; pointer-events: none; }
+
+/* KPI cards */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.kpi-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    transition: border-color .2s;
+}
+.kpi-card:hover { border-color: var(--border-h); }
+.kpi-label { font-size: .72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; font-family: var(--mono); margin-bottom: .4rem; }
+.kpi-value { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
+.kpi-sub { font-size: .75rem; color: var(--text-dim); margin-top: .25rem; }
+.kpi-card.green .kpi-value { color: var(--accent-green); }
+.kpi-card.blue  .kpi-value { color: var(--accent); }
+.kpi-card.warn  .kpi-value { color: var(--accent-warn); }
+.kpi-card.red   .kpi-value { color: var(--accent-red); }
+
+/* Charts grid */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.chart-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: border-color .2s;
+}
+.chart-card:hover { border-color: var(--border-h); }
+.chart-card.full { grid-column: 1 / -1; }
+
+.chart-header {
+    padding: .9rem 1.25rem; border-bottom: 1px solid var(--border);
+    background: var(--bg-card2); display: flex; align-items: center; gap: .6rem;
+}
+.chart-header h3 { font-family: var(--mono); font-size: .82rem; font-weight: 700; flex: 1; }
+.chart-badge {
+    font-family: var(--mono); font-size: .65rem; padding: .15rem .55rem;
+    border-radius: 100px; border: 1px solid var(--border);
+    color: var(--text-dim); background: rgba(255,255,255,.03);
+}
+
+.chart-body { padding: 1.25rem; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; font-size: .72rem; color: var(--text-mid); font-family: var(--mono); }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+.skeleton-chart { height: 260px; background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.03) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+.footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: .74rem; color: var(--text-dim); display: flex; justify-content: space-between; }
+
+@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 900px)  { .charts-grid { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 1.25rem 1rem 3rem; } }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-title">PySpark · SQL</div>
+        <div class="sidebar-logo-sub">Banco Unicaja · Analytics</div>
+    </div>
+    <div class="sidebar-nav">
+        <div class="sidebar-section">Navegación</div>
+        <a class="nav-link" href="/">📋 Consultas SQL</a>
+        <a class="nav-link active" href="/charts">📊 Analytics</a>
+        <div class="sidebar-section">Gráficas</div>
+        <a class="nav-link" href="#chart-tarjetas">💳 Oferta tarjetas</a>
+        <a class="nav-link" href="#chart-sucursales">🏦 Sucursales</a>
+        <a class="nav-link" href="#chart-riesgo">⚖️ Riesgo</a>
+        <a class="nav-link" href="#chart-segmento">👥 Segmentos</a>
+        <a class="nav-link" href="#chart-score">🎯 Score</a>
+        <a class="nav-link" href="#chart-propension">📦 Propensión</a>
+        <a class="nav-link" href="#chart-provincia">🗺️ Provincias</a>
+        <a class="nav-link" href="#chart-prestamos">💰 Préstamos</a>
+    </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1>Analytics <span>Bancario</span></h1>
+            <p>8 métricas clave · Datos frescos via PySpark on-demand</p>
+        </div>
+        <button class="btn-refresh" id="btn-refresh" onclick="cargarTodo()">
+            ⟳ Actualizar datos
+        </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card blue">
+            <div class="kpi-label">Total clientes</div>
+            <div class="kpi-value" id="kpi-clientes">—</div>
+            <div class="kpi-sub">cuentas activas</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-label">Saldo total</div>
+            <div class="kpi-value" id="kpi-saldo">—</div>
+            <div class="kpi-sub">en cuentas activas</div>
+        </div>
+        <div class="kpi-card warn">
+            <div class="kpi-label">Score medio</div>
+            <div class="kpi-value" id="kpi-score">—</div>
+            <div class="kpi-sub">crediticio global</div>
+        </div>
+        <div class="kpi-card red">
+            <div class="kpi-label">Clientes morosos</div>
+            <div class="kpi-value" id="kpi-morosos">—</div>
+            <div class="kpi-sub">con préstamo moroso</div>
+        </div>
+    </div>
+
+    <!-- Grid de gráficas -->
+    <div class="charts-grid">
+
+        <!-- G1: Distribución tarjetas -->
+        <div class="chart-card" id="chart-tarjetas">
+            <div class="chart-header">
+                <span>💳</span>
+                <h3>Distribución oferta de tarjetas</h3>
+                <span class="chart-badge">Pie</span>
+            </div>
+            <div class="chart-body">
+                <div class="chart-legend" id="legend-tarjetas"></div>
+                <div style="position:relative;height:260px"><canvas id="c-tarjetas"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G3: Riesgo crediticio -->
+        <div class="chart-card" id="chart-riesgo">
+            <div class="chart-header">
+                <span>⚖️</span>
+                <h3>Distribución de riesgo crediticio</h3>
+                <span class="chart-badge">Donut</span>
+            </div>
+            <div class="chart-body">
+                <div class="chart-legend" id="legend-riesgo"></div>
+                <div style="position:relative;height:260px"><canvas id="c-riesgo"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G2: Saldo por sucursal -->
+        <div class="chart-card full" id="chart-sucursales">
+            <div class="chart-header">
+                <span>🏦</span>
+                <h3>Saldo total por sucursal — top 10</h3>
+                <span class="chart-badge">Bar horizontal</span>
+            </div>
+            <div class="chart-body">
+                <div style="position:relative;height:420px"><canvas id="c-sucursales"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G4: Clientes por segmento -->
+        <div class="chart-card" id="chart-segmento">
+            <div class="chart-header">
+                <span>👥</span>
+                <h3>Clientes y saldo medio por segmento</h3>
+                <span class="chart-badge">Bar doble</span>
+            </div>
+            <div class="chart-body">
+                <div class="chart-legend" id="legend-segmento"></div>
+                <div style="position:relative;height:260px"><canvas id="c-segmento"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G5: Score por segmento -->
+        <div class="chart-card" id="chart-score">
+            <div class="chart-header">
+                <span>🎯</span>
+                <h3>Score crediticio por segmento</h3>
+                <span class="chart-badge">Bar + rango</span>
+            </div>
+            <div class="chart-body">
+                <div style="position:relative;height:260px"><canvas id="c-score"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G6: Propensión por segmento -->
+        <div class="chart-card full" id="chart-propension">
+            <div class="chart-header">
+                <span>📦</span>
+                <h3>Propensión a productos por segmento (%)</h3>
+                <span class="chart-badge">Bar agrupada</span>
+            </div>
+            <div class="chart-body">
+                <div class="chart-legend" id="legend-propension"></div>
+                <div style="position:relative;height:300px"><canvas id="c-propension"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G7: Saldo por provincia -->
+        <div class="chart-card full" id="chart-provincia">
+            <div class="chart-header">
+                <span>🗺️</span>
+                <h3>Saldo total por provincia — top 10</h3>
+                <span class="chart-badge">Bar horizontal</span>
+            </div>
+            <div class="chart-body">
+                <div style="position:relative;height:420px"><canvas id="c-provincia"></canvas></div>
+            </div>
+        </div>
+
+        <!-- G8: Préstamos por estado y sucursal -->
+        <div class="chart-card full" id="chart-prestamos">
+            <div class="chart-header">
+                <span>💰</span>
+                <h3>Cartera de préstamos por estado y sucursal</h3>
+                <span class="chart-badge">Stacked bar</span>
+            </div>
+            <div class="chart-body">
+                <div class="chart-legend" id="legend-prestamos"></div>
+                <div style="position:relative;height:340px"><canvas id="c-prestamos"></canvas></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <span>PySpark Analytics Bancario · on-demand via JDBC</span>
+        <span>admin_unicaja · 217.154.183.21</span>
+    </div>
+
+</main>
+</div>
+
+<script>
+const COLORS = {
+    premium:    '#f59e0b',
+    oro:        '#38bdf8',
+    estandar:   '#64748b',
+    bajo:       '#22c55e',
+    medio:      '#f59e0b',
+    alto:       '#ef4444',
+    muyalto:    '#991b1b',
+    blue:       '#3b82f6',
+    teal:       '#14b8a6',
+    purple:     '#a78bfa',
+    pink:       '#f472b6',
+    orange:     '#f97316',
+    green:      '#22c55e',
+    red:        '#ef4444',
+    yellow:     '#eab308',
+    slate:      '#94a3b8',
+};
+
+const CHART_DEFAULTS = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+};
+
+const FONT = { family: "'Space Mono', monospace", size: 11 };
+const GRID_COLOR = 'rgba(56,139,253,.1)';
+const TICK_COLOR = '#64748b';
+
+let charts = {};
+
+function destroyChart(id) {
+    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── Leyenda custom ───────────────────────────────────────────
+function renderLeyenda(containerId, items) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = items.map(i =>
+        `<span class="legend-item">
+            <span class="legend-dot" style="background:${i.color}"></span>
+            ${i.label}
+        </span>`
+    ).join('');
+}
+
+// ── Formatear números ────────────────────────────────────────
+function fmtM(v) {
+    if (v >= 1e6) return (v/1e6).toFixed(1) + 'M€';
+    if (v >= 1e3) return (v/1e3).toFixed(0) + 'K€';
+    return v + '€';
+}
+
+// ── G1: Pie tarjetas ─────────────────────────────────────────
+function renderTarjetas(data) {
+    destroyChart('tarjetas');
+    const labels  = data.map(d => d.oferta);
+    const values  = data.map(d => d.total);
+    const colors  = data.map(d => {
+        if (d.oferta === 'Premium')  return COLORS.premium;
+        if (d.oferta === 'Oro')      return COLORS.oro;
+        return COLORS.estandar;
+    });
+    const total = values.reduce((a,b) => a+b, 0);
+
+    renderLeyenda('legend-tarjetas', labels.map((l,i) =>
+        ({ color: colors[i], label: `${l} ${((values[i]/total)*100).toFixed(1)}%` })
+    ));
+
+    charts.tarjetas = new Chart(document.getElementById('c-tarjetas'), {
+        type: 'pie',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#0b1120', borderWidth: 2 }] },
+        options: { ...CHART_DEFAULTS, plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()} clientes` }
+        }}}
+    });
+}
+
+// ── G2: Bar horizontal sucursales ────────────────────────────
+function renderSucursales(data) {
+    destroyChart('sucursales');
+    charts.sucursales = new Chart(document.getElementById('c-sucursales'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.sucursal),
+            datasets: [{
+                label: 'Saldo total',
+                data: data.map(d => d.saldo_total),
+                backgroundColor: '#3b82f6',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            indexAxis: 'y',
+            scales: {
+                x: { ticks: { color: TICK_COLOR, font: FONT, callback: v => fmtM(v) }, grid: { color: GRID_COLOR } },
+                y: { ticks: { color: TICK_COLOR, font: FONT }, grid: { display: false } }
+            },
+            plugins: { legend: { display: false }, tooltip: {
+                callbacks: { label: ctx => ` ${fmtM(ctx.raw)}` }
+            }}
+        }
+    });
+}
+
+// ── G3: Donut riesgo ─────────────────────────────────────────
+function renderRiesgo(data) {
+    destroyChart('riesgo');
+    const colorMap = { 'Bajo': COLORS.bajo, 'Medio': COLORS.medio, 'Alto': COLORS.alto, 'Muy Alto': COLORS.muyalto };
+    const colors = data.map(d => colorMap[d.riesgo] || COLORS.slate);
+
+    renderLeyenda('legend-riesgo', data.map((d,i) =>
+        ({ color: colors[i], label: `${d.riesgo} ${d.pct}%` })
+    ));
+
+    charts.riesgo = new Chart(document.getElementById('c-riesgo'), {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.riesgo),
+            datasets: [{ data: data.map(d => d.saldo_total), backgroundColor: colors, borderColor: '#0b1120', borderWidth: 2 }]
+        },
+        options: { ...CHART_DEFAULTS, cutout: '65%', plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => ` ${ctx.label}: ${fmtM(ctx.raw)}` }
+        }}}
+    });
+}
+
+// ── G4: Bar doble segmento ───────────────────────────────────
+function renderSegmento(data) {
+    destroyChart('segmento');
+    renderLeyenda('legend-segmento', [
+        { color: COLORS.blue,  label: 'Nº clientes' },
+        { color: COLORS.teal,  label: 'Saldo medio' },
+    ]);
+    charts.segmento = new Chart(document.getElementById('c-segmento'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.segmento),
+            datasets: [
+                { label: 'Clientes', data: data.map(d => d.num_clientes), backgroundColor: COLORS.blue, borderRadius: 4, yAxisID: 'y' },
+                { label: 'Saldo medio', data: data.map(d => d.saldo_medio), backgroundColor: COLORS.teal, borderRadius: 4, yAxisID: 'y2' },
+            ]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            scales: {
+                x:  { ticks: { color: TICK_COLOR, font: FONT }, grid: { display: false } },
+                y:  { position: 'left',  ticks: { color: TICK_COLOR, font: FONT }, grid: { color: GRID_COLOR } },
+                y2: { position: 'right', ticks: { color: TICK_COLOR, font: FONT, callback: v => fmtM(v) }, grid: { display: false } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// ── G5: Score por segmento ───────────────────────────────────
+function renderScore(data) {
+    destroyChart('score');
+    charts.score = new Chart(document.getElementById('c-score'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.segmento),
+            datasets: [
+                { label: 'Score medio', data: data.map(d => d.score_medio), backgroundColor: COLORS.purple, borderRadius: 4 },
+                { label: 'Score mín',   data: data.map(d => d.score_min),   backgroundColor: 'rgba(239,68,68,.3)', borderRadius: 4 },
+                { label: 'Score máx',   data: data.map(d => d.score_max),   backgroundColor: 'rgba(34,197,94,.3)', borderRadius: 4 },
+            ]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            scales: {
+                x: { ticks: { color: TICK_COLOR, font: FONT }, grid: { display: false } },
+                y: { ticks: { color: TICK_COLOR, font: FONT }, grid: { color: GRID_COLOR }, min: 0, max: 1000 }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// ── G6: Propensión agrupada ──────────────────────────────────
+function renderPropension(data) {
+    destroyChart('propension');
+    renderLeyenda('legend-propension', [
+        { color: COLORS.blue,   label: '% Ahorro' },
+        { color: COLORS.orange, label: '% Inversión' },
+        { color: COLORS.green,  label: '% Seguro' },
+    ]);
+    charts.propension = new Chart(document.getElementById('c-propension'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.segmento),
+            datasets: [
+                { label: 'Ahorro',    data: data.map(d => d.pct_ahorro),    backgroundColor: COLORS.blue,   borderRadius: 4 },
+                { label: 'Inversión', data: data.map(d => d.pct_inversion), backgroundColor: COLORS.orange, borderRadius: 4 },
+                { label: 'Seguro',    data: data.map(d => d.pct_seguro),    backgroundColor: COLORS.green,  borderRadius: 4 },
+            ]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            scales: {
+                x: { ticks: { color: TICK_COLOR, font: FONT }, grid: { display: false } },
+                y: { ticks: { color: TICK_COLOR, font: FONT, callback: v => v+'%' }, grid: { color: GRID_COLOR }, max: 100 }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// ── G7: Bar horizontal provincias ───────────────────────────
+function renderProvincia(data) {
+    destroyChart('provincia');
+    charts.provincia = new Chart(document.getElementById('c-provincia'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.provincia),
+            datasets: [{
+                label: 'Saldo total',
+                data: data.map(d => d.saldo_total),
+                backgroundColor: COLORS.teal,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            ...CHART_DEFAULTS,
+            indexAxis: 'y',
+            scales: {
+                x: { ticks: { color: TICK_COLOR, font: FONT, callback: v => fmtM(v) }, grid: { color: GRID_COLOR } },
+                y: { ticks: { color: TICK_COLOR, font: FONT }, grid: { display: false } }
+            },
+            plugins: { legend: { display: false }, tooltip: {
+                callbacks: { label: ctx => ` ${fmtM(ctx.raw)}` }
+            }}
+        }
+    });
+}
+
+// ── G8: Stacked bar préstamos ────────────────────────────────
+function renderPrestamos(data) {
+    destroyChart('prestamos');
+
+    const sucursales = [...new Set(data.map(d => d.sucursal))];
+    const estados    = [...new Set(data.map(d => d.estado))];
+    const estadoColors = {
+        'Activo':    COLORS.green,
+        'Cancelado': COLORS.slate,
+        'Pagado':    COLORS.blue,
+        'Moroso':    COLORS.red,
+        'Pendiente': COLORS.yellow,
+    };
+
+    renderLeyenda('legend-prestamos', estados.map(e =>
+        ({ color: estadoColors[e] || COLORS.slate, label: e })
+    ));
+
+    const datasets = estados.map(estado => ({
+        label: estado,
+        data: sucursales.map(suc => {
+            const row = data.find(d => d.sucursal === suc && d.estado === estado);
+            return row ? row.total : 0;
+        }),
+        backgroundColor: estadoColors[estado] || COLORS.slate,
+        borderRadius: 2,
+    }));
+
+    charts.prestamos = new Chart(document.getElementById('c-prestamos'), {
+        type: 'bar',
+        data: { labels: sucursales, datasets },
+        options: {
+            ...CHART_DEFAULTS,
+            scales: {
+                x: { stacked: true, ticks: { color: TICK_COLOR, font: FONT, maxRotation: 45 }, grid: { display: false } },
+                y: { stacked: true, ticks: { color: TICK_COLOR, font: FONT }, grid: { color: GRID_COLOR } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// ── Actualizar KPIs ──────────────────────────────────────────
+function actualizarKPIs(datos) {
+    const seg = datos.segmento_clientes || [];
+    const totalClientes = seg.reduce((a,b) => a + (b.num_clientes||0), 0);
+    document.getElementById('kpi-clientes').textContent =
+        totalClientes.toLocaleString('es-ES');
+
+    const suc = datos.saldo_sucursal || [];
+    const totalSaldo = suc.reduce((a,b) => a + (b.saldo_total||0), 0);
+    document.getElementById('kpi-saldo').textContent = fmtM(Math.round(totalSaldo));
+
+    const sc = datos.score_segmento || [];
+    if (sc.length) {
+        const scoreGlobal = sc.reduce((a,b) => a + b.score_medio, 0) / sc.length;
+        document.getElementById('kpi-score').textContent = scoreGlobal.toFixed(0);
+    }
+
+    const pr = datos.prestamos_estado || [];
+    const morosos = pr.filter(d => d.estado === 'Moroso').reduce((a,b) => a + b.total, 0);
+    document.getElementById('kpi-morosos').textContent = morosos.toLocaleString('es-ES');
+}
+
+// ── Cargar todo ──────────────────────────────────────────────
+async function cargarTodo() {
+    const btn = document.getElementById('btn-refresh');
+    btn.classList.add('loading');
+    btn.textContent = '⟳ Cargando...';
+
+    try {
+        const res  = await fetch('/api/charts');
+        const data = await res.json();
+
+        if (data.error) {
+            console.error(data.error);
+            return;
+        }
+
+        actualizarKPIs(data);
+        renderTarjetas(data.tarjetas          || []);
+        renderSucursales(data.saldo_sucursal   || []);
+        renderRiesgo(data.riesgo               || []);
+        renderSegmento(data.segmento_clientes  || []);
+        renderScore(data.score_segmento        || []);
+        renderPropension(data.propension       || []);
+        renderProvincia(data.saldo_provincia   || []);
+        renderPrestamos(data.prestamos_estado  || []);
+
+    } catch(e) {
+        console.error('Error cargando gráficas:', e);
+    } finally {
+        btn.classList.remove('loading');
+        btn.textContent = '⟳ Actualizar datos';
+    }
+}
+
+// Cargar al entrar
+cargarTodo();
+</script>
+</body>
+</html>

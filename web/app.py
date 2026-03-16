@@ -15,6 +15,7 @@ from flask import Flask, jsonify, render_template, abort
 from src.consultas.orquestador import ejecutar, ejecutar_todas
 from src.consultas.catalogo import CONSULTAS, BLOQUES, CATALOGO_POR_ID
 from config.conexion import get_spark
+from src.consultas.charts import todas_las_graficas
 
 app = Flask(__name__)
 
@@ -123,6 +124,19 @@ def api_status():
         })
     except Exception as e:
         return jsonify({"status": "error", "mensaje": str(e)}), 500
+    
+from src.consultas.charts import todas_las_graficas
+
+@app.route("/charts")
+def charts():
+    return render_template("charts.html")
+
+@app.route("/api/charts")
+def api_charts():
+    try:
+        return jsonify(todas_las_graficas())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ── Arranque ─────────────────────────────────────────────────

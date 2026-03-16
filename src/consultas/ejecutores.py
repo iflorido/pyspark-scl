@@ -454,7 +454,7 @@ MAPA = {
     "d1": d1_media_segmento,
     "e1": e1_cte_top_clientes,
     "e2": e2_distribucion_riesgo,
-    "f1": f1_where_vs_having,
+   # "f1": f1_where_vs_having,
     "g1": g1_candidatos_deposito,
     "g2": g2_scoring_360,
 }
