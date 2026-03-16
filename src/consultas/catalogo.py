@@ -484,7 +484,7 @@ resumen.withColumn("pct_saldo",
     },
 
     # ── BLOQUE F: Trampas de entrevista ──────────────────────
-    {
+    '''{
         "id":      "f1",
         "titulo":  "F1 — WHERE vs HAVING (pregunta trampa)",
         "bloque":  "Trampas de Entrevista",
@@ -519,7 +519,7 @@ clientes
             "antes del .groupBy() para WHERE, o después para HAVING. "
             "La posición del .filter() en la cadena es lo que marca la diferencia."
         ),
-    },
+    },'''
 
     # ── BLOQUE G: Recomendación de productos ─────────────────
     {
