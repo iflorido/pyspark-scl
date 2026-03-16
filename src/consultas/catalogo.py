@@ -483,43 +483,7 @@ resumen.withColumn("pct_saldo",
         ),
     },
 
-    # ── BLOQUE F: Trampas de entrevista ──────────────────────
-    '''{
-        "id":      "f1",
-        "titulo":  "F1 — WHERE vs HAVING (pregunta trampa)",
-        "bloque":  "Trampas de Entrevista",
-        "icono":   "⚠️",
-        "tablas":  ["Clientes", "Cuentas"],
-        "sql": """\
--- WHERE filtra FILAS antes de agrupar
-SELECT cl.id_sucursal,
-       COUNT(*) AS clientes_con_saldo_alto
-FROM Clientes cl
-JOIN Cuentas c ON cl.id_cliente = c.id_cliente
-WHERE c.saldo > 20000
-GROUP BY cl.id_sucursal
-ORDER BY clientes_con_saldo_alto DESC
-LIMIT 15""",
-        "pyspark": """\
-clientes
-.join(cuentas, "id_cliente")
-.filter(F.col("saldo") > 20000)       # WHERE → .filter() antes del groupBy
-.groupBy("id_sucursal")
-.agg(F.count("*").alias("clientes_con_saldo_alto"))
-.orderBy(F.desc("clientes_con_saldo_alto")).limit(15)
-
-# Si el filtro fuera sobre el agregado (HAVING):
-# .groupBy("id_sucursal")
-# .agg(F.count("*").alias("total"))
-# .filter(F.col("total") > 5)         # HAVING → .filter() después del groupBy""",
-        "explicacion": (
-            "WHERE actúa antes del GROUP BY: filtra filas individuales. "
-            "HAVING actúa después: filtra sobre el resultado de la agregación. "
-            "En PySpark no existe HAVING como cláusula — simplemente usas .filter() "
-            "antes del .groupBy() para WHERE, o después para HAVING. "
-            "La posición del .filter() en la cadena es lo que marca la diferencia."
-        ),
-    },'''
+    
 
     # ── BLOQUE G: Recomendación de productos ─────────────────
     {
