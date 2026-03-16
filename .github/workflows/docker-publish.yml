@@ -40,7 +40,6 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
-            type=sha,prefix=sha-
 
       - name: Build y push imagen Docker
         uses: docker/build-push-action@v5

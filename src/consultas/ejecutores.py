@@ -126,7 +126,7 @@ def b2_top3_provincia():
     provincias = leer_tabla("Provincias")
 
     ventana = Window.partitionBy("id_provincia").orderBy(F.desc("saldo"))
-
+    provincias = provincias.withColumnRenamed("nombre", "provincia")
     df = (
         clientes
         .join(cuentas.filter(F.col("activa") == 1), "id_cliente")
@@ -136,7 +136,7 @@ def b2_top3_provincia():
         .select(
             "id_cliente",
             F.concat(F.col("nombre"), F.lit(" "), F.col("apellidos")).alias("cliente"),
-            provincias["nombre"].alias("provincia"),
+            "provincia",
             F.round("saldo", 2).alias("saldo"),
             "ranking")
         .orderBy("provincia", "ranking")
