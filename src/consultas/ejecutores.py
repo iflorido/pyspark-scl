@@ -1,7 +1,7 @@
-# src/consultas/ejecutores.py
 # =============================================================
-#  Funciones PySpark para cada consulta del catálogo.
-#  Cada función lee datos frescos de MariaDB en el momento
+#  Funciones PySpark para cada consulta del catálogo, estas las 
+# leemos de catalogo.py
+# Cada función lee datos directamente de MariaDB en el momento
 #  de ser llamada — sin caché, sin ficheros intermedios.
 #  El MAPA al final conecta cada id con su función.
 # =============================================================

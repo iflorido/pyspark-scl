@@ -3,8 +3,7 @@ import os
 from pyspark.sql import SparkSession
 
 # ── Ruta al driver JDBC ─────────────────────────────────────
-# abspath + __file__ garantiza que funciona independientemente
-# de desde dónde se ejecute Flask
+
 JAR_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "spark-jars", "mysql-connector-j-8.4.0.jar")
 )
@@ -21,8 +20,6 @@ JDBC_URL = (
     "&allowPublicKeyRetrieval=true"
 )
 
-# ── Propiedades de autenticación ────────────────────────────
-# Se pasan como dict separado del URL por seguridad
 # (evita que la password aparezca en logs de Spark)
 JDBC_PROPS = {
     "user":     "BD_NAME",
@@ -30,9 +27,8 @@ JDBC_PROPS = {
     "driver":   "com.mysql.cj.jdbc.Driver"
 }
 
-# ── Singleton de SparkSession ───────────────────────────────
+
 # _spark es privado (convención _variable)
-# None indica que todavía no se ha iniciado
 _spark = None
 
 def get_spark() -> SparkSession:
@@ -51,10 +47,9 @@ def get_spark() -> SparkSession:
             .config("spark.jars", JAR_PATH)
             # necesario para que el driver sea visible al ejecutar consultas
             .config("spark.driver.extraClassPath", JAR_PATH)
-            # desactiva la UI web de Spark (puerto 4040)
-            # en producción no la necesitamos y consume recursos
+
             .config("spark.ui.enabled", "false")
-            # getOrCreate: si ya existe una sesión activa la reutiliza,
+           
             # si no existe la crea — clave para el patrón singleton
             .getOrCreate())
 
@@ -64,7 +59,7 @@ def get_spark() -> SparkSession:
 def leer_tabla(nombre: str):
     """
     Lee una tabla completa de MariaDB en el momento de la llamada.
-    Cada vez que se llama obtiene datos frescos — sin caché,
+    Cada vez que se llama obtiene datos actualizados de la BD — sin caché,
     sin ficheros intermedios.
     """
     return get_spark().read.jdbc(

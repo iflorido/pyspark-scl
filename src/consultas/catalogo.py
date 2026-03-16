@@ -1,8 +1,8 @@
-# src/consultas/catalogo.py
-# =============================================================
-#  Catálogo de consultas — metadatos, SQL y código PySpark
-#  equivalente para cada consulta del proyecto bancario.
-#  La lógica de ejecución está en los módulos ejecutores.
+#  Catálogo de consultas — aqui vamos añadiendo las consultas, SQL y código PySpark
+#  no hay lógica de ejecución, solo el texto de las consultas y su explicación.
+#  La lógica de ejecución está en los módulos ejecutores, si se añade una nueva consulta aquí, 
+#  hay que añadir su ejecución en el ejecutores.py -> esto es importante a tener en cuenta
+# 
 # =============================================================
 
 CONSULTAS = [
