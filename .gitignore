@@ -6,12 +6,27 @@ bin-release/
 
 # Other files and folders
 .settings/
-
+conexion.py
+recomendacion.py
+window.py
+01_extraccion.py
+02_transformacion.py
+03_window_functions.py
+04_recomendacion.py
+.DS_Store
+test_conexion.py
 # Executables
 *.swf
 *.air
 *.ipa
 *.apk
+*.csv
+*.json
+spark-jars/
+
+# Spark
+spark-warehouse/
+derby.log
 
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important

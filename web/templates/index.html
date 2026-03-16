@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PySpark SQL — Banco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg:           #0b1120;
+    --bg-card:      #111827;
+    --bg-card2:     #0f1929;
+    --bg-code:      #0a1020;
+    --border:       rgba(56,139,253,.18);
+    --border-h:     rgba(56,139,253,.45);
+    --accent:       #3b82f6;
+    --accent-2:     #38bdf8;
+    --accent-warn:  #f59e0b;
+    --accent-red:   #ef4444;
+    --accent-green: #22c55e;
+    --accent-purple:#a78bfa;
+    --text-main:    #e2e8f0;
+    --text-dim:     #64748b;
+    --text-mid:     #94a3b8;
+    --tag-bg:       rgba(59,130,246,.12);
+    --radius:       14px;
+    --radius-sm:    8px;
+    --mono:         'Space Mono', monospace;
+    --sans:         'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text-main); min-height: 100vh; line-height: 1.6; }
+
+/* ── Layout ─────────────────────────────────────────────── */
+.layout { display: flex; min-height: 100vh; }
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-card); border-right: 1px solid var(--border);
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    padding: 0 0 2rem;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.sidebar-logo { padding: 1.5rem 1.25rem 1rem; border-bottom: 1px solid var(--border); margin-bottom: .75rem; }
+.sidebar-logo-title { font-family: var(--mono); font-size: .85rem; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+.sidebar-logo-sub { font-size: .72rem; color: var(--text-dim); margin-top: 2px; }
+.sidebar-logo-badges { display: flex; gap: .4rem; margin-top: .6rem; }
+.badge { font-family: var(--mono); font-size: .62rem; padding: .15rem .5rem; border-radius: 100px; border: 1px solid var(--border); }
+.badge-spark  { color: #f97316; border-color: rgba(249,115,22,.3); background: rgba(249,115,22,.08); }
+.badge-flask  { color: var(--accent-green); border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.08); }
+.badge-sql    { color: var(--accent-2); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.08); }
+
+.sidebar-section { padding: .25rem 1rem .1rem 1.25rem; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); margin-top: .9rem; }
+.sidebar-link {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .42rem 1rem .42rem 1.25rem;
+    color: var(--text-mid); text-decoration: none; font-size: .8rem;
+    transition: background .15s, color .15s;
+    border: none; background: none; width: 100%; text-align: left; cursor: pointer;
+    border-left: 2px solid transparent;
+}
+.sidebar-link:hover  { background: rgba(59,130,246,.07); color: var(--text-main); border-left-color: var(--accent); }
+.sidebar-link.active { background: rgba(59,130,246,.12); color: var(--text-main); border-left-color: var(--accent); }
+.sidebar-link .ico   { font-size: .95rem; width: 20px; text-align: center; }
+
+/* Status dot */
+.status-bar { padding: .75rem 1.25rem; border-top: 1px solid var(--border); margin-top: auto; display: flex; align-items: center; gap: .5rem; font-size: .72rem; color: var(--text-dim); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.status-dot.offline { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+
+/* ── Main ───────────────────────────────────────────────── */
+.main { flex: 1; overflow-x: hidden; padding: 2rem 2.5rem 4rem; }
+
+/* ── Header ─────────────────────────────────────────────── */
+.page-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.page-header h1 { font-family: var(--mono); font-size: 1.55rem; color: var(--text-main); }
+.page-header h1 span { color: var(--accent); }
+.page-header p { color: var(--text-mid); font-size: .88rem; margin-top: .4rem; }
+.header-tags { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .9rem; align-items: center; }
+.tag {
+    display: inline-block; padding: .2rem .7rem;
+    background: var(--tag-bg); border: 1px solid var(--border);
+    border-radius: 100px; font-size: .7rem; font-family: var(--mono);
+    color: var(--accent-2); letter-spacing: .04em;
+}
+.btn-refresh {
+    margin-left: auto; display: flex; align-items: center; gap: .4rem;
+    padding: .35rem .9rem; font-family: var(--mono); font-size: .72rem;
+    background: rgba(59,130,246,.1); border: 1px solid var(--border);
+    border-radius: 100px; color: var(--accent); cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+.btn-refresh:hover { background: rgba(59,130,246,.2); border-color: var(--border-h); }
+.btn-refresh.loading { opacity: .6; pointer-events: none; }
+
+/* ── Bloque título ──────────────────────────────────────── */
+.bloque-titulo {
+    font-family: var(--mono); font-size: .72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim);
+    margin: 2.5rem 0 .9rem; display: flex; align-items: center; gap: .6rem;
+}
+.bloque-titulo::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Query card ─────────────────────────────────────────── */
+.query-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 1.5rem;
+    overflow: hidden; transition: border-color .2s;
+}
+.query-card:hover { border-color: var(--border-h); }
+
+.query-card-header {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .85rem 1.25rem; border-bottom: 1px solid var(--border);
+    background: var(--bg-card2);
+}
+.query-card-header .ico { font-size: 1.05rem; }
+.query-card-header h3  { font-family: var(--mono); font-size: .82rem; font-weight: 700; color: var(--text-main); flex: 1; }
+
+.query-meta { display: flex; align-items: center; gap: .5rem; }
+.query-count {
+    font-family: var(--mono); font-size: .7rem; color: var(--text-dim);
+    background: rgba(255,255,255,.04); border: 1px solid var(--border);
+    border-radius: 100px; padding: .12rem .55rem;
+}
+.btn-ejecutar {
+    font-family: var(--mono); font-size: .68rem;
+    padding: .22rem .7rem; border-radius: 100px; cursor: pointer;
+    background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.3);
+    color: var(--accent); transition: background .15s;
+}
+.btn-ejecutar:hover    { background: rgba(59,130,246,.25); }
+.btn-ejecutar.loading  { opacity: .5; pointer-events: none; }
+.btn-ejecutar.executed { color: var(--accent-green); border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.08); }
+
+/* ── Tabs SQL / PySpark ─────────────────────────────────── */
+.tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-code); }
+.tab-btn {
+    font-family: var(--mono); font-size: .68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    padding: .55rem 1rem; cursor: pointer; border: none;
+    background: none; color: var(--text-dim);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: color .15s, border-color .15s;
+}
+.tab-btn:hover        { color: var(--text-mid); }
+.tab-btn.active       { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn.active-spark { color: #f97316; border-bottom-color: #f97316; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Query body: 3 columnas ─────────────────────────────── */
+.query-body { display: grid; grid-template-columns: 1fr 1fr; min-height: 280px; }
+
+.panel-left  { border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.panel-code  { flex: 1; border-bottom: 1px solid var(--border); padding: 1rem 1.25rem; background: var(--bg-code); overflow: auto; max-height: 260px; }
+.panel-explain { padding: 1rem 1.25rem; background: var(--bg-card); min-height: 80px; }
+
+.panel-label {
+    font-size: .65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--text-dim); margin-bottom: .55rem;
+    display: flex; align-items: center; gap: .4rem;
+}
+.panel-label::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.panel-label.spark::before { background: #f97316; }
+
+pre.code-block {
+    font-family: var(--mono); font-size: .73rem; color: #93c5fd;
+    white-space: pre-wrap; word-break: break-word; line-height: 1.8;
+}
+/* SQL syntax highlight */
+pre.code-block .kw  { color: #f472b6; font-weight: 700; }
+pre.code-block .str { color: #86efac; }
+pre.code-block .num { color: #fde68a; }
+pre.code-block .cmt { color: #475569; font-style: italic; }
+/* PySpark highlight */
+pre.code-block .py-fn   { color: #f97316; font-weight: 700; }
+pre.code-block .py-str  { color: #86efac; }
+pre.code-block .py-kw   { color: #c084fc; font-weight: 700; }
+pre.code-block .py-num  { color: #fde68a; }
+pre.code-block .py-cmt  { color: #475569; font-style: italic; }
+
+.panel-explain p    { font-size: .8rem; color: var(--text-mid); line-height: 1.65; }
+.panel-explain strong { color: var(--accent-2); }
+.panel-explain code {
+    font-family: var(--mono); font-size: .72rem;
+    background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
+    border-radius: 4px; padding: .1rem .3rem; color: #93c5fd;
+}
+
+/* ── Panel resultado ────────────────────────────────────── */
+.panel-right { overflow: auto; padding: 1rem 1.25rem; max-height: 420px; }
+
+.skeleton { display: flex; flex-direction: column; gap: .5rem; padding: .5rem 0; }
+.skeleton-row { height: 28px; background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.03) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 4px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+.empty-msg   { padding: 2.5rem; text-align: center; color: var(--text-dim); font-size: .82rem; }
+.error-msg   { font-family: var(--mono); font-size: .76rem; color: var(--accent-red); background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: var(--radius-sm); padding: .75rem 1rem; }
+
+.result-table { width: 100%; border-collapse: collapse; font-size: .74rem; white-space: nowrap; }
+.result-table th {
+    font-family: var(--mono); font-size: .65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--accent);
+    background: rgba(59,130,246,.07); padding: .45rem .7rem;
+    border-bottom: 1px solid var(--border); text-align: left;
+    position: sticky; top: 0; z-index: 1;
+}
+.result-table td { padding: .38rem .7rem; border-bottom: 1px solid rgba(255,255,255,.04); color: var(--text-mid); font-family: var(--mono); font-size: .71rem; }
+.result-table tr:last-child td { border-bottom: none; }
+.result-table tr:hover td { background: rgba(59,130,246,.05); color: var(--text-main); }
+
+.cell-premium  { color: #f59e0b !important; font-weight: 700; }
+.cell-oro      { color: #fbbf24 !important; }
+.cell-estandar { color: var(--text-dim) !important; }
+.cell-moroso   { color: var(--accent-red) !important; font-weight: 700; }
+.cell-activo   { color: var(--accent-green) !important; }
+.cell-bajo     { color: var(--accent-green) !important; }
+.cell-alto     { color: var(--accent-red) !important; }
+.cell-medio    { color: var(--accent-warn) !important; }
+
+/* ── Footer ─────────────────────────────────────────────── */
+.footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+    font-size: .74rem; color: var(--text-dim);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(59,130,246,.25); border-radius: 10px; }
+
+@media (max-width: 900px) {
+    .query-body { grid-template-columns: 1fr; }
+    .panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+    .sidebar { display: none; }
+    .main { padding: 1.25rem 1rem 3rem; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── Sidebar ──────────────────────────────────────────── -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-title">PySpark · SQL</div>
+        <div class="sidebar-logo-sub">Banco Scalian · {{ consultas|length }} consultas</div>
+        <div class="sidebar-logo-badges">
+            <span class="badge badge-spark">PySpark</span>
+            <span class="badge badge-flask">Flask</span>
+            <span class="badge badge-sql">SQL</span>
+        </div>
+    </div>
+
+    {% set prev_bloque = namespace(val='') %}
+    {% for c in consultas %}
+        {% if c.bloque != prev_bloque.val %}
+            {% set prev_bloque.val = c.bloque %}
+            <div class="sidebar-section">{{ c.bloque }}</div>
+        {% endif %}
+        <button class="sidebar-link" onclick="scrollToCard('{{ c.id }}')">
+            <span class="ico">{{ c.icono }}</span>
+            {{ c.titulo }}
+        </button>
+    {% endfor %}
+
+    <div style="flex:1"></div>
+    <div class="status-bar" id="status-bar">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Comprobando Spark...</span>
+    </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────── -->
+<main class="main">
+
+    <div class="page-header">
+        <h1>PySpark <span>Bancario</span></h1>
+        <p>
+            Base de datos: <strong>Scalian</strong> ·
+            On-demand via JDBC · Datos frescos en cada consulta
+        </p>
+        <div class="header-tags">
+            {% for bloque in bloques %}
+                <span class="tag">{{ bloque }}</span>
+            {% endfor %}
+            <button class="btn-refresh" id="btn-refresh-all" onclick="ejecutarTodas()">
+                ⟳ Ejecutar todas
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Tarjetas de consulta ───────────────────────── -->
+    {% set prev_bloque = namespace(val='') %}
+    {% for c in consultas %}
+
+        {% if c.bloque != prev_bloque.val %}
+            {% set prev_bloque.val = c.bloque %}
+            <div class="bloque-titulo">{{ c.bloque }}</div>
+        {% endif %}
+
+        <div class="query-card" id="card-{{ c.id }}">
+
+            <!-- Header -->
+            <div class="query-card-header">
+                <span class="ico">{{ c.icono }}</span>
+                <h3>{{ c.titulo }}</h3>
+                <div class="query-meta">
+                    <span class="query-count" id="count-{{ c.id }}">— filas</span>
+                    <button class="btn-ejecutar" id="btn-{{ c.id }}"
+                            onclick="ejecutarConsulta('{{ c.id }}')">
+                        ▶ Ejecutar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body: código izquierda | resultado derecha -->
+            <div class="query-body">
+
+                <!-- Panel izquierdo: tabs SQL / PySpark + explicación -->
+                <div class="panel-left">
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab-btn active"
+                                onclick="switchTab('{{ c.id }}', 'sql', this)">
+                            SQL
+                        </button>
+                        <button class="tab-btn"
+                                onclick="switchTab('{{ c.id }}', 'spark', this)">
+                            ⚡ PySpark
+                        </button>
+                    </div>
+
+                    <!-- Panel SQL -->
+                    <div class="panel-code tab-panel active" id="tab-sql-{{ c.id }}">
+                        <div class="panel-label">Consulta SQL</div>
+                        <pre class="code-block" id="sql-{{ c.id }}">{{ c.sql }}</pre>
+                    </div>
+
+                    <!-- Panel PySpark -->
+                    <div class="panel-code tab-panel" id="tab-spark-{{ c.id }}">
+                        <div class="panel-label spark">Código PySpark</div>
+                        <pre class="code-block" id="spark-{{ c.id }}">{{ c.pyspark }}</pre>
+                    </div>
+
+                    <!-- Explicación -->
+                    <div class="panel-explain">
+                        <div class="panel-label">Explicación</div>
+                        <p>{{ c.explicacion }}</p>
+                    </div>
+                </div>
+
+                <!-- Panel derecho: resultado -->
+                <div class="panel-right" id="result-{{ c.id }}">
+                    <div class="empty-msg">
+                        Pulsa <strong>▶ Ejecutar</strong> para ver los datos
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    {% endfor %}
+
+    <div class="footer">
+        <span>PySpark SQL Bancario · on-demand via JDBC</span>
+        <span id="footer-info">Scalian Demo Financiero · Automarworks BD</span>
+    </div>
+
+</main>
+</div>
+
+<script>
+// ── Syntax highlight SQL ─────────────────────────────────────
+function highlightSQL(sql) {
+    sql = sql.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    sql = sql.replace(/(--[^\n]*)/g, '<span class="cmt">$1</span>');
+    sql = sql.replace(/'([^']*)'/g, "<span class='str'>'$1'</span>");
+    const kws = ['UNBOUNDED PRECEDING','CURRENT ROW','PARTITION BY','GROUP BY',
+        'ORDER BY','IS NOT NULL','LEFT JOIN','RIGHT JOIN','INNER JOIN','NOT IN',
+        'IS NULL','DENSE_RANK','ROW_NUMBER','TIMESTAMPDIFF','SELECT','FROM',
+        'WHERE','JOIN','ON','AND','OR','NOT','EXISTS','AS','HAVING','LIMIT',
+        'WITH','UNION','DISTINCT','CASE','WHEN','THEN','ELSE','END','OVER',
+        'ROWS','BETWEEN','DESC','ASC','COUNT','SUM','AVG','MAX','MIN','ROUND',
+        'RANK','LAG','LEAD','CURDATE','CONCAT','NULL'];
+    kws.forEach(kw => {
+        const re = new RegExp(`(?<![a-zA-Z_])(${kw})(?![a-zA-Z_])`, 'gi');
+        sql = sql.replace(re, '<span class="kw">$1</span>');
+    });
+    sql = sql.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="num">$1</span>');
+    return sql;
+}
+
+// ── Syntax highlight PySpark ─────────────────────────────────
+function highlightPySpark(code) {
+    code = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    code = code.replace(/(#[^\n]*)/g, '<span class="py-cmt">$1</span>');
+    code = code.replace(/"([^"]*)"/g, '<span class="py-str">"$1"</span>');
+    code = code.replace(/'([^']*)'/g, "<span class='py-str'>'$1'</span>");
+    const fns = ['F\\.when','F\\.col','F\\.lit','F\\.concat','F\\.round',
+        'F\\.sum','F\\.avg','F\\.count','F\\.countDistinct','F\\.lag','F\\.lead',
+        'F\\.rank','F\\.dense_rank','F\\.row_number','F\\.floor','F\\.datediff',
+        'F\\.current_date','F\\.coalesce','Window\\.partitionBy','Window\\.rowsBetween',
+        'Window\\.unboundedPreceding','Window\\.unboundedFollowing'];
+    fns.forEach(fn => {
+        const re = new RegExp(`(${fn})`, 'g');
+        code = code.replace(re, '<span class="py-fn">$1</span>');
+    });
+    const kws = ['\\bdef\\b','\\breturn\\b','\\bfrom\\b','\\bimport\\b',
+        '\\bif\\b','\\bnot\\b','\\band\\b','\\bor\\b','\\bTrue\\b','\\bFalse\\b','\\bNone\\b'];
+    kws.forEach(kw => {
+        const re = new RegExp(kw, 'g');
+        code = code.replace(re, m => `<span class="py-kw">${m}</span>`);
+    });
+    code = code.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="py-num">$1</span>');
+    return code;
+}
+
+// ── Aplicar highlights al cargar ────────────────────────────
+document.querySelectorAll('pre.code-block').forEach(pre => {
+    const id = pre.id;
+    if (id.startsWith('sql-')) {
+        pre.innerHTML = highlightSQL(pre.textContent);
+    } else if (id.startsWith('spark-')) {
+        pre.innerHTML = highlightPySpark(pre.textContent);
+    }
+});
+
+// ── Tabs SQL / PySpark ───────────────────────────────────────
+function switchTab(id, tipo, btn) {
+    const card = document.getElementById('card-' + id);
+    card.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    card.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active', 'active-spark');
+    });
+    document.getElementById('tab-' + tipo + '-' + id).classList.add('active');
+    btn.classList.add(tipo === 'spark' ? 'active-spark' : 'active');
+}
+
+// ── Cell class según valor ───────────────────────────────────
+function cellClass(val) {
+    if (!val) return '';
+    const v = String(val).toLowerCase();
+    if (v.includes('premium'))   return 'cell-premium';
+    if (v.includes('oro'))       return 'cell-oro';
+    if (v.includes('estándar') || v.includes('estandar')) return 'cell-estandar';
+    if (v.includes('moroso'))    return 'cell-moroso';
+    if (v === 'activo')          return 'cell-activo';
+    if (v === 'bajo')            return 'cell-bajo';
+    if (v === 'alto' || v === 'muy alto') return 'cell-alto';
+    if (v === 'medio')           return 'cell-medio';
+    return '';
+}
+
+// ── Renderizar tabla de resultados ───────────────────────────
+function renderTabla(datos, panelId) {
+    const panel = document.getElementById(panelId);
+    if (!datos || datos.length === 0) {
+        panel.innerHTML = '<div class="empty-msg">Sin resultados</div>';
+        return;
+    }
+    const cols = Object.keys(datos[0]);
+    let html = '<table class="result-table"><thead><tr>';
+    cols.forEach(c => { html += `<th>${c}</th>`; });
+    html += '</tr></thead><tbody>';
+    datos.forEach(row => {
+        html += '<tr>';
+        cols.forEach(c => {
+            const val = row[c];
+            const cls = cellClass(val);
+            html += `<td class="${cls}">${val ?? ''}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody></table>';
+    panel.innerHTML = html;
+}
+
+// ── Skeleton loader ──────────────────────────────────────────
+function showSkeleton(panelId) {
+    const rows = Array(6).fill('<div class="skeleton-row"></div>').join('');
+    document.getElementById(panelId).innerHTML = `<div class="skeleton">${rows}</div>`;
+}
+
+// ── Ejecutar una consulta ────────────────────────────────────
+async function ejecutarConsulta(id) {
+    const btn   = document.getElementById('btn-' + id);
+    const count = document.getElementById('count-' + id);
+
+    btn.classList.add('loading');
+    btn.textContent = '⟳';
+    showSkeleton('result-' + id);
+
+    try {
+        const res  = await fetch(`/api/${id}`);
+        const data = await res.json();
+
+        if (data.error) {
+            document.getElementById('result-' + id).innerHTML =
+                `<div class="error-msg">⚠ ${data.error}</div>`;
+            count.textContent = 'Error';
+        } else {
+            renderTabla(data.datos, 'result-' + id);
+            count.textContent = `${data.total_filas} filas`;
+            btn.classList.add('executed');
+            btn.textContent = '✓';
+        }
+    } catch(e) {
+        document.getElementById('result-' + id).innerHTML =
+            `<div class="error-msg">⚠ Error de red: ${e.message}</div>`;
+        count.textContent = 'Error';
+    } finally {
+        btn.classList.remove('loading');
+    }
+}
+
+// ── Ejecutar todas ───────────────────────────────────────────
+async function ejecutarTodas() {
+    const btn = document.getElementById('btn-refresh-all');
+    btn.classList.add('loading');
+    btn.textContent = '⟳ Ejecutando...';
+
+    // Ejecutar en paralelo con Promise.all
+    const ids = {{ consultas | map(attribute='id') | list | tojson }};
+    await Promise.all(ids.map(id => ejecutarConsulta(id)));
+
+    btn.classList.remove('loading');
+    btn.textContent = '⟳ Ejecutar todas';
+}
+
+// ── Scroll al card ───────────────────────────────────────────
+function scrollToCard(id) {
+    const el = document.getElementById('card-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+}
+
+// ── Health check Spark ───────────────────────────────────────
+async function checkStatus() {
+    try {
+        const res  = await fetch('/api/status');
+        const data = await res.json();
+        const dot  = document.getElementById('status-dot');
+        const txt  = document.getElementById('status-text');
+        if (data.status === 'ok') {
+            dot.classList.remove('offline');
+            txt.textContent = `Spark ${data.spark} · ${data.total} consultas`;
+        } else {
+            dot.classList.add('offline');
+            txt.textContent = 'Spark no disponible';
+        }
+    } catch {
+        document.getElementById('status-dot').classList.add('offline');
+        document.getElementById('status-text').textContent = 'Sin conexión';
+    }
+}
+
+// Al cargar la página
+checkStatus();
+</script>
+</body>
+</html>
