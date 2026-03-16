@@ -482,9 +482,6 @@ resumen.withColumn("pct_saldo",
             "Sin esta ventana necesitarías una subconsulta extra para obtener el total."
         ),
     },
-
-    
-
     # ── BLOQUE G: Recomendación de productos ─────────────────
     {
         "id":      "g1",
