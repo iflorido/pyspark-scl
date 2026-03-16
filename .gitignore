@@ -14,7 +14,6 @@ window.py
 03_window_functions.py
 04_recomendacion.py
 .DS_Store
-test_conexion.py
 # Executables
 *.swf
 *.air
