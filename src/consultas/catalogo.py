@@ -53,7 +53,7 @@ cuentas.filter(F.col("activa") == 1)
         "id":      "a2",
         "titulo":  "A2 — Clasificación multiproducto (tarjeta + fondo + seguro)",
         "bloque":  "CASE / Clasificación",
-        "icono":   "📦",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas", "ScoreCliente"],
         "sql": """\
 SELECT cl.id_cliente,
@@ -113,7 +113,7 @@ clientes.filter(F.col("activo") == 1)
         "id":      "b1",
         "titulo":  "B1 — RANK vs ROW_NUMBER vs DENSE_RANK por sucursal",
         "bloque":  "Window Functions",
-        "icono":   "🏆",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas"],
         "sql": """\
 SELECT cl.id_sucursal,
@@ -155,7 +155,7 @@ clientes
         "id":      "b2",
         "titulo":  "B2 — Top-3 clientes por saldo en cada provincia",
         "bloque":  "Window Functions",
-        "icono":   "🥇",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas", "Provincias"],
         "sql": """\
 SELECT * FROM (
@@ -240,7 +240,7 @@ clientes
         "id":      "c1",
         "titulo":  "C1 — Clientes SIN préstamo activo (LEFT JOIN + IS NULL)",
         "bloque":  "JOINs",
-        "icono":   "🔗",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas", "Prestamos"],
         "sql": """\
 SELECT cl.id_cliente,
@@ -280,7 +280,7 @@ clientes.filter(F.col("activo") == 1)
         "id":      "c2",
         "titulo":  "C2 — Sucursales con métricas (JOIN múltiple + agregación)",
         "bloque":  "JOINs",
-        "icono":   "🏦",
+        "icono":   "💳",
         "tablas":  ["Sucursales", "Provincias", "Clientes", "Cuentas", "Prestamos"],
         "sql": """\
 SELECT s.id_sucursal,
@@ -327,7 +327,7 @@ sucursales
         "id":      "d1",
         "titulo":  "D1 — Clientes con saldo superior a la media de su segmento",
         "bloque":  "Subconsultas",
-        "icono":   "📊",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas"],
         "sql": """\
 SELECT cl.id_cliente,
@@ -384,7 +384,7 @@ clientes.filter(F.col("activo") == 1)
         "id":      "e1",
         "titulo":  "E1 — CTE: clientes con alto saldo + su scoring",
         "bloque":  "CTEs",
-        "icono":   "🧮",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas", "ScoreCliente"],
         "sql": """\
 WITH saldo_total AS (
@@ -442,7 +442,7 @@ top_clientes.join(score, "id_cliente")
         "id":      "e2",
         "titulo":  "E2 — CTE: distribución de riesgo con % sobre total",
         "bloque":  "CTEs",
-        "icono":   "⚖️",
+        "icono":   "💳",
         "tablas":  ["ScoreCliente", "Cuentas"],
         "sql": """\
 WITH resumen AS (
@@ -526,7 +526,7 @@ clientes
         "id":      "g1",
         "titulo":  "G1 — Clientes candidatos a depósito (sin producto activo)",
         "bloque":  "Recomendación de Productos",
-        "icono":   "🎯",
+        "icono":   "💳",
         "tablas":  ["Clientes", "Cuentas", "ScoreCliente", "ClienteProductos", "Productos"],
         "sql": """\
 SELECT cl.id_cliente,

@@ -21,7 +21,6 @@ window.py
 *.apk
 *.csv
 *.json
-spark-jars/
 
 # Spark
 spark-warehouse/
