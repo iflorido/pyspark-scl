@@ -294,7 +294,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text-main);
 
     <div class="footer">
         <span>PySpark Analytics Bancario · on-demand via JDBC</span>
-        <span>admin_unicaja · 217.154.183.21</span>
+        <span>BD Demo · VPS Automaworks</span>
     </div>
 
 </main>
@@ -584,23 +584,26 @@ function renderPrestamos(data) {
 // ── Actualizar KPIs ──────────────────────────────────────────
 function actualizarKPIs(datos) {
     const seg = datos.segmento_clientes || [];
-    const totalClientes = seg.reduce((a,b) => a + (b.num_clientes||0), 0);
+    const totalClientes = seg.reduce((a,b) => a + (parseInt(b.num_clientes)||0), 0);
     document.getElementById('kpi-clientes').textContent =
         totalClientes.toLocaleString('es-ES');
 
     const suc = datos.saldo_sucursal || [];
-    const totalSaldo = suc.reduce((a,b) => a + (b.saldo_total||0), 0);
+    const totalSaldo = suc.reduce((a,b) => a + (parseFloat(b.saldo_total)||0), 0);
     document.getElementById('kpi-saldo').textContent = fmtM(Math.round(totalSaldo));
 
     const sc = datos.score_segmento || [];
     if (sc.length) {
-        const scoreGlobal = sc.reduce((a,b) => a + b.score_medio, 0) / sc.length;
+        const scoreGlobal = sc.reduce((a,b) => a + (parseFloat(b.score_medio)||0), 0) / sc.length;
         document.getElementById('kpi-score').textContent = scoreGlobal.toFixed(0);
     }
 
     const pr = datos.prestamos_estado || [];
-    const morosos = pr.filter(d => d.estado === 'Moroso').reduce((a,b) => a + b.total, 0);
-    document.getElementById('kpi-morosos').textContent = morosos.toLocaleString('es-ES');
+    const morosos = pr
+        .filter(d => d.estado === 'Moroso')
+        .reduce((a,b) => a + (parseInt(b.total)||0), 0);
+    document.getElementById('kpi-morosos').textContent =
+        morosos.toLocaleString('es-ES');
 }
 
 // ── Cargar todo ──────────────────────────────────────────────
