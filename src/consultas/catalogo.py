@@ -610,6 +610,11 @@ HAVING total_propensiones >= 2
 ORDER BY total_propensiones DESC, c.saldo DESC
 LIMIT 25""",
         "pyspark": """\
+        score = score
+    .withColumn("prop_ahorro",    F.col("propension_ahorro").cast("int"))
+    .withColumn("prop_inversion", F.col("propension_inversion").cast("int"))
+    .withColumn("prop_seguro",    F.col("propension_seguro").cast("int"))
+    
 prod_activos = (
     cliente_prod.filter(F.col("estado") == "Activo")
     .groupBy("id_cliente")
@@ -623,9 +628,9 @@ clientes.filter(F.col("activo") == 1)
 .withColumn("edad",
     F.floor(F.datediff(F.current_date(), F.col("fecha_nacimiento")) / 365))
 .withColumn("total_propensiones",
-    F.col("propension_ahorro") +
-    F.col("propension_inversion") +
-    F.col("propension_seguro"))
+    F.col("prop_ahorro") +
+    F.col("prop_inversion") +
+    F.col("prop_seguro"))
 .filter(F.col("total_propensiones") >= 2)
 .withColumn("productos_activos",
     F.coalesce(F.col("productos_activos"), F.lit(0)))

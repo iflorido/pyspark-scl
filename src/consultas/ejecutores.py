@@ -410,10 +410,17 @@ def g2_scoring_360():
         .join(prod_activos, "id_cliente", how="left")
         .withColumn("edad",
             F.floor(F.datediff(F.current_date(), F.col("fecha_nacimiento")) / 365))
+        # ── Cast BOOLEAN → INT antes de sumar ──────────────
+        .withColumn("prop_ahorro",
+            F.col("propension_ahorro").cast("int"))
+        .withColumn("prop_inversion",
+            F.col("propension_inversion").cast("int"))
+        .withColumn("prop_seguro",
+            F.col("propension_seguro").cast("int"))
         .withColumn("total_propensiones",
-            F.col("propension_ahorro") +
-            F.col("propension_inversion") +
-            F.col("propension_seguro"))
+            F.col("prop_ahorro") +
+            F.col("prop_inversion") +
+            F.col("prop_seguro"))
         .filter(F.col("total_propensiones") >= 2)
         .withColumn("productos_activos",
             F.coalesce(F.col("productos_activos"), F.lit(0)))
