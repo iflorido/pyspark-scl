@@ -51,6 +51,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text-main);
 .badge { font-family: var(--mono); font-size: .62rem; padding: .15rem .5rem; border-radius: 100px; border: 1px solid var(--border); }
 .badge-spark  { color: #f97316; border-color: rgba(249,115,22,.3); background: rgba(249,115,22,.08); }
 .badge-flask  { color: var(--accent-green); border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.08); }
+.nav-link   { color: var(--accent-green); border-color: rgba(34,197,94,.3); background: rgba(34,197,94,.08); }
 .badge-sql    { color: var(--accent-2); border-color: rgba(56,189,248,.3); background: rgba(56,189,248,.08); }
 
 .sidebar-section { padding: .25rem 1rem .1rem 1.25rem; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); margin-top: .9rem; }
@@ -255,7 +256,10 @@ pre.code-block .py-cmt  { color: #475569; font-style: italic; }
             <span class="badge badge-spark">PySpark</span>
             <span class="badge badge-flask">Flask</span>
             <span class="badge badge-sql">SQL</span>
-            <span class="badge badge-flask"><a class="nav-link" href="/charts">Estadisticas</a>/span>
+                
+        </div>
+        <div class="sidebar-logo-badges">
+            <span class="badge badge-flask"><a class="nav-link" href="/charts">Estadisticas</a></span>
         </div>
     </div>
 
